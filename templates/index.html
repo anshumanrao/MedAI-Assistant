@@ -1,1 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MedAI | Smart Diagnosis Engine</title>
+    
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
 
+    <style>
+        :root { --primary: #3b82f6; --bg-dark: #0f172a; --card-bg: #1e293b; }
+        
+        body { 
+            background: var(--bg-dark); 
+            color: #e2e8f0; 
+            font-family: 'Segoe UI', Roboto, sans-serif; 
+            overflow-x: hidden;
+        }
+        
+        /* Sidebar Styling */
+        .sidebar { 
+            width: 260px; 
+            background: #020617; 
+            border-right: 1px solid #1e293b; 
+            padding: 30px; 
+            position: fixed; 
+            height: 100vh; 
+        }
+        
+        .main-content { margin-left: 260px; padding: 40px; }
+        
+        .glass-header { 
+            background: rgba(30, 41, 59, 0.7); 
+            backdrop-filter: blur(10px); 
+            border-radius: 20px; 
+            padding: 35px; 
+            border: 1px solid #334155; 
+            margin-bottom: 40px;
+        }
+
+        /* Select2 Dark Theme Overrides */
+        .select2-container--default .select2-selection--multiple {
+            background-color: #0f172a !important;
+            border: 2px solid #334155 !important;
+            min-height: 55px !important;
+            border-radius: 12px !important;
+        }
+        .select2-container--default .select2-selection--multiple .select2-selection__choice {
+            background-color: var(--primary) !important;
+            border: none !important;
+            color: white !important;
+            border-radius: 6px !important;
+            padding: 4px 12px !important;
+        }
+        .select2-search__field { color: white !important; }
+
+        /* Button Styling */
+        .btn-predict {
+            background: linear-gradient(135deg, #2563eb, #7c3aed);
+            border: none; padding: 15px; border-radius: 12px;
+            width: 100%; font-weight: 800; font-size: 1.1rem; color: white;
+            transition: 0.3s; box-shadow: 0 4px 15px rgba(37, 99, 235, 0.3);
+        }
+        .btn-predict:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(37, 99, 235, 0.5); }
+
+        /* Result Cards (The ones you asked for) */
+        .result-card {
+            background: rgba(30, 41, 59, 0.8);
+            border: 1px solid #334155;
+            border-radius: 20px;
+            padding: 30px;
+            margin-top: 30px;
+        }
+
+        .diet-card {
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px solid #10b981;
+            border-radius: 12px;
+            padding: 15px;
+            height: 100%;
+        }
+
+        .precaution-card {
+            background: rgba(245, 158, 11, 0.1);
+            border: 1px solid #f59e0b;
+            border-radius: 12px;
+            padding: 15px;
+            height: 100%;
+        }
+
+        .symptom-tag {
+            background: #334155;
+            color: #94a3b8;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            display: inline-block;
+            margin: 3px;
+        }
+
+        .disease-title { color: #60a5fa; font-weight: 800; }
+    </style>
+</head>
+<body>
+
+    <div class="sidebar d-none d-lg-block">
+        <h3 class="text-primary fw-bold mb-5">MedAI Engine</h3>
+        <nav class="nav flex-column gap-3">
+            <a href="#" class="nav-link text-white p-0">🏠 Dashboard</a>
+            <a href="#" class="nav-link text-muted p-0">📁 Records</a>
+            <a href="#" class="nav-link text-muted p-0">⚙️ Settings</a>
+        </nav>
+    </div>
+
+    <div class="main-content">
+        <div class="glass-header animate__animated animate__fadeInDown">
+            <h1 class="fw-bold">AI Clinical <span class="text-primary">Predictor</span></h1>
+            <p class="text-secondary mb-0">Select observed symptoms for automated disease mapping.</p>
+        </div>
+
+        <div class="card bg-transparent border-0 mb-5">
+            <form action="/predict" method="POST">
+                <div class="mb-4">
+                    <label class="form-label text-secondary fw-bold mb-3">SEARCH & ADD SYMPTOMS</label>
+                    <select name="symptoms_list" id="symptoms_list" class="form-control" multiple="multiple" required>
+                        {% for s in all_symptoms %}
+                        <option value="{{ s }}">{{ s.replace('_', ' ').title() }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <button type="submit" class="btn-predict">START NEURAL ANALYSIS</button>
+            </form>
+        </div>
+
+        {% if result %}
+        <div class="result-card animate__animated animate__zoomIn">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h5 class="text-success fw-bold m-0">AI DIAGNOSIS COMPLETE</h5>
+                <span class="badge bg-primary">Confidence: High</span>
+            </div>
+            
+            <h1 class="display-4 disease-title mb-3">{{ result }}</h1>
+            
+            <div class="mb-4">
+                <h6 class="text-secondary small fw-bold">ANALYZED SYMPTOMS:</h6>
+                {% for symp in selected_symptoms %}
+                <span class="symptom-tag">{{ symp.replace('_', ' ').title() }}</span>
+                {% endfor %}
+            </div>
+
+            <div class="p-3 bg-dark rounded border border-secondary mb-4">
+                <h6 class="text-info fw-bold">💡 Medical Advice:</h6>
+                <p class="m-0 text-light">{{ advice }}</p>
+            </div>
+
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <div class="precaution-card">
+                        <h6 class="text-warning fw-bold mb-3">⚠️ Essential Precautions:</h6>
+                        <ul class="mb-0 text-light small">
+                            {% for p in precautions %}
+                                <li>{{ p }}</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="diet-card">
+                        <h6 class="text-success fw-bold mb-3">🥗 Recommended Diet:</h6>
+                        <ul class="mb-0 text-light small">
+                            {% for d in diet %}
+                                <li>{{ d }}</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-4 pt-3 border-top border-secondary d-flex gap-2">
+                <button class="btn btn-outline-light btn-sm" onclick="window.print()">Download Report</button>
+                <a href="/" class="btn btn-link btn-sm text-decoration-none">New Diagnosis</a>
+            </div>
+        </div>
+        {% endif %}
+
+        {% if error %}
+        <div class="alert alert-danger mt-4 animate__animated animate__shakeX">{{ error }}</div>
+        {% endif %}
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    
+    <script>
+        $(document).ready(function() {
+            $('#symptoms_list').select2({
+                placeholder: "Type symptoms here (e.g. Fever, Vomiting...)",
+                allowClear: true,
+                width: '100%'
+            });
+        });
+    </script>
+</body>
+</html>
